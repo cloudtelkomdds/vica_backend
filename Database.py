@@ -1,20 +1,15 @@
 import mysql.connector
+from Secret import Secret
 
 class Database:
-    #TODO: Move configuration to external file
-    host = "3.217.77.161"
-    user = "root"
-    password = "6352"
-    db = "db_staging_cloudpbx_telkom"
-
     READ = 0
     WRITE = 1
 
     def __init__(self):
-        self.connection = mysql.connector.connect(host=Database.host,
-                                                  user=Database.user,
-                                                  passwd=Database.password,
-                                                  database=Database.db)
+        self.connection = mysql.connector.connect(host=Secret.host,
+                                                  user=Secret.user,
+                                                  passwd=Secret.password,
+                                                  database=Secret.db)
 
     def execute(self, operation, query, param=None):
         cursor = self.connection.cursor()
