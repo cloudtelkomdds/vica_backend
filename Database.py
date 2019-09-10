@@ -26,3 +26,5 @@ class Database:
                 return True, cursor.rowcount
         except Exception as e:
             return False, e
+        finally:
+            cursor.close()
