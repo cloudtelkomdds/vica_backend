@@ -9,10 +9,10 @@ class Database:
         pass
 
     def execute(self, operation, query, param=None):
-        connection = mysql.connector.connect(host=Secret.host,
-                                             user=Secret.user,
-                                             passwd=Secret.password,
-                                             database=Secret.db)
+        connection = mysql.connector.connect(host=Secret.HOST,
+                                             user=Secret.USER,
+                                             passwd=Secret.PASSWORD,
+                                             database=Secret.DB)
         cursor = connection.cursor()
         try:
             if operation == Database.READ:

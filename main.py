@@ -9,11 +9,18 @@ from google.auth.transport import requests
 from Secret import Secret
 from Database import Database
 from Role import Role
+import random
+import string
 
 app = Flask(__name__)
 CORS(app)
 db = Database()
 container_manager = ContainerManager()
+
+def generate_token():
+    n = 20
+    token = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+    return token
 
 def generate_response(data, message, status):
     response = {
@@ -50,19 +57,22 @@ def authenticate(func):
 
 @app.route("/sign_in_with_google", methods=["POST"])
 def sign_in_with_google():
-    name = "Sample Name"
-    email = request.form["email"]
+    token = request.form["token"]
 
-    # info = id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
-    # given_name = info["given_name"]
-    # email = info["email"]
+    info = id_token.verify_oauth2_token(token, requests.Request(), Secret.CLIENT_ID)
+    name = info["given_name"]
+    email = info["email"]
 
-    query, param = "SELECT name, email, is_admin, token FROM tb_user WHERE email = %s", [email]
+    query = "SELECT name, email, is_admin, token FROM tb_user WHERE email = %s"
+    param = [email]
     result = db.execute(operation=Database.READ, query=query, param=param)
     if len(result[1]) == 0:
-        query, param = "INSERT INTO tb_user(name, email) VALUES (%s, %s)", [name, email]
+        token = generate_token()
+        query = "INSERT INTO tb_user(name, email, token) VALUES (%s, %s, %s)"
+        param = [name, email, token]
         _ = db.execute(operation=Database.WRITE, query=query, param=param)
-        query, param = "SELECT name, email, is_admin FROM tb_user WHERE email = %s", [email]
+        query = "SELECT name, email, is_admin, token FROM tb_user WHERE email = %s"
+        param = [email]
         result = db.execute(operation=Database.READ, query=query, param=param)
 
     data = {
