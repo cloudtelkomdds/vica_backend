@@ -6,13 +6,14 @@ class Database:
     WRITE = 1
 
     def __init__(self):
-        self.connection = mysql.connector.connect(host=Secret.host,
-                                                  user=Secret.user,
-                                                  passwd=Secret.password,
-                                                  database=Secret.db)
+        pass
 
     def execute(self, operation, query, param=None):
-        cursor = self.connection.cursor()
+        connection = mysql.connector.connect(host=Secret.host,
+                                             user=Secret.user,
+                                             passwd=Secret.password,
+                                             database=Secret.db)
+        cursor = connection.cursor()
         try:
             if operation == Database.READ:
                 if param is None:
@@ -22,9 +23,7 @@ class Database:
                 return True, cursor.fetchall()
             elif operation == Database.WRITE:
                 cursor.execute(query, param)
-                self.connection.commit()
+                connection.commit()
                 return True, cursor.rowcount
         except Exception as e:
             return False, e
-        finally:
-            cursor.close()

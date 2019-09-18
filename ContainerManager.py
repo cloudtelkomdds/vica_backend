@@ -11,12 +11,17 @@ class ContainerManager:
                                    name=name,
                                    ports={"80/tcp": host_port})
 
+    def remove(self, name):
+        self.client.containers.get(name).remove(force=True)
+
     def list(self):
         print(self.client.containers.list())
 
     def get_port(self, used_ports):
-        for port in range(30001, 40001):
-            if port not in used_ports:
+        if len(used_ports) == 0:
+            return 30001
+        for port in range(30002, 40001):
+            if port not in used_ports[0]:
                 return port
 
     def get_valid_name(self, user_id, name):
