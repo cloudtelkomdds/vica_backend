@@ -293,3 +293,6 @@ def delete_pbx(user_id, role):
     message = "PBX successfully deleted."
     status = 1
     return generate_response(data=data, message=message, status=status)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")
