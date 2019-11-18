@@ -1,8 +1,8 @@
 #TODO: Move secrets into external file
 class Secret:
-    HOST = "127.0.0.1"
+    HOST = "cloudpbx.gcp"
     USER = "root"
-    PASSWORD = "6352"
-    DB = "db_staging_cloudpbx_telkom"
+    PASSWORD = "12345mysql"
+    DB = "db_cloudpbx"
 
     CLIENT_ID = "960717492474-ti0d5rj9d87uj5lba8bh9peubfdqqfqd.apps.googleusercontent.com"
