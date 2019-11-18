@@ -28,8 +28,8 @@ class ContainerManager:
             if port not in used_ports[0]:
                 return port
 
-    def get_valid_name(self, user_id, name):
-        name = str(user_id) + "_" + name.lower().replace(" ", "_")
+    def get_valid_name(self, id_user, name):
+        name = str(id_user) + "_" + name.lower().replace(" ", "_")
         return name
 
     def get_host_address(self):
