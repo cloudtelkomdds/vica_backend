@@ -14,7 +14,7 @@ class VmManager:
                 "boot": True,
                 "autoDelete": True,
                 "initializeParams": {
-                    "sourceImage": "https://www.googleapis.com/compute/v1/projects/handy-digit-259807/global/images/asterisk"
+                    "sourceImage": "https://www.googleapis.com/compute/v1/projects/handy-digit-259807/global/images/asterisk-server"
                 }
             }
         ],
