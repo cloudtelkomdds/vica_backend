@@ -3,7 +3,7 @@ from flask import request
 from flask import jsonify
 from flask_cors import CORS
 from functools import wraps
-from ContainerManager import ContainerManager
+from VmManager import VmManager
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from Secret import Secret
@@ -11,11 +11,11 @@ from Database import Database
 from Role import Role
 import random
 import string
+from email_manager import EmailManager
 
 app = Flask(__name__)
 CORS(app)
-db = Database()
-container_manager = ContainerManager()
+vm_manager = VmManager()
 
 def generate_token():
     n = 20
@@ -40,9 +40,9 @@ def authenticate(func):
             status = 0
             return generate_response(data=data, message=message, status=status)
         else:
-            query = "SELECT id, is_admin FROM tb_user WHERE token = %s"
+            query = "SELECT id_user, is_admin FROM tb_user WHERE token = %s"
             param = [token.split(" ")[1]]
-            result = db.execute(operation=Database.READ, query=query, param=param)
+            result = Database.execute(operation=Database.READ, query=query, param=param)
             if len(result[1]) == 0:
                 data = []
                 message = "Authentication failed."
@@ -65,15 +65,15 @@ def sign_in_with_google():
 
     query = "SELECT name, email, is_admin, token FROM tb_user WHERE email = %s"
     param = [email]
-    result = db.execute(operation=Database.READ, query=query, param=param)
+    result = Database.execute(operation=Database.READ, query=query, param=param)
     if len(result[1]) == 0:
         token = generate_token()
         query = "INSERT INTO tb_user(name, email, token) VALUES (%s, %s, %s)"
         param = [name, email, token]
-        _ = db.execute(operation=Database.WRITE, query=query, param=param)
+        _ = Database.execute(operation=Database.WRITE, query=query, param=param)
         query = "SELECT name, email, is_admin, token FROM tb_user WHERE email = %s"
         param = [email]
-        result = db.execute(operation=Database.READ, query=query, param=param)
+        result = Database.execute(operation=Database.READ, query=query, param=param)
 
     data = {
         "name": result[1][0][0],
@@ -81,6 +81,10 @@ def sign_in_with_google():
         "is_admin": True if result[1][0][2] == 1 else False,
         "token": result[1][0][3]
     }
+
+    if result[1][0][2] != 1:
+        EmailManager.send_email(result[1][0][1])
+
     message = "Login successful"
     status = 1
     return generate_response(data=data, message=message, status=status)
@@ -88,18 +92,18 @@ def sign_in_with_google():
 @app.route("/get_locations", methods=["GET"])
 @authenticate
 def get_locations(id_user, role):
-    query = "SELECT id, name FROM tb_location"
-    result = db.execute(operation=Database.READ, query=query)
+    query = "SELECT id_location, name FROM tb_location"
+    result = Database.execute(operation=Database.READ, query=query)
     data = []
     for item in result[1]:
         item_json = {
-            "location_id": item[0],
+            "id_location": item[0],
             "name": item[1]
         }
         data.append(item_json)
     message = "Locations successfully obtained."
     status = 1
-    return generate_response(data=data, message=message, status=status);
+    return generate_response(data=data, message=message, status=status)
 
 @app.route("/create_pbx_request", methods=["POST"])
 @authenticate
@@ -110,17 +114,17 @@ def create_pbx_request(id_user, role):
 
     query = "SELECT name FROM tb_pbx_request WHERE id_user = %s"
     param = [id_user]
-    result = db.execute(operation=Database.READ, query=query, param=param)
+    result = Database.execute(operation=Database.READ, query=query, param=param)
     for item in result[1]:
         if name == item[0]:
             data = []
             message = "PBX request with specified name has existed."
             status = 0
-            return generate_response(data, message, status)
+            return generate_response(data=data, message=message, status=status)
 
     query = "INSERT INTO tb_pbx_request(id_user, name, location, number_of_extension, status) VALUES (%s, %s, %s, %s, %s)"
     param = [id_user, name, location, number_of_extension, "Waiting For Approval"]
-    _ = db.execute(operation=Database.WRITE, query=query, param=param)
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
     data = []
     message = "PBX request successfully submitted."
     status = 1
@@ -131,13 +135,13 @@ def create_pbx_request(id_user, role):
 def get_all_pbx_requests(id_user, role):
     data = []
     if role == Role.ADMIN:
-        query = "SELECT id_user, tb_user.name, tb_pbx_request.id, tb_pbx_request.name, location, number_of_extension, status FROM tb_user JOIN (tb_pbx_request) ON (tb_user.id = tb_pbx_request.id_user)"
-        result = db.execute(operation=Database.READ, query=query)
+        query = "SELECT tb_user.id_user, tb_user.name, id_pbx_request, tb_pbx_request.name, location, number_of_extension, status FROM tb_user JOIN tb_pbx_request ON tb_user.id_user = tb_pbx_request.id_user"
+        result = Database.execute(operation=Database.READ, query=query)
         for item in result[1]:
             item_json = {
                 "id_user": item[0],
                 "user_name": item[1],
-                "pbx_request_id": item[2],
+                "id_pbx_request": item[2],
                 "pbx_request_name": item[3],
                 "location": item[4],
                 "number_of_extension": item[5],
@@ -145,12 +149,12 @@ def get_all_pbx_requests(id_user, role):
             }
             data.append(item_json)
     else:
-        query = "SELECT id, name, location, number_of_extension, status FROM tb_pbx_request WHERE id_user = %s"
+        query = "SELECT id_pbx_request, name, location, number_of_extension, status FROM tb_pbx_request WHERE id_user = %s"
         param = [id_user]
-        result = db.execute(operation=Database.READ, query=query, param=param)
+        result = Database.execute(operation=Database.READ, query=query, param=param)
         for item in result[1]:
             item_json = {
-                "pbx_request_id": item[0],
+                "id_pbx_request": item[0],
                 "pbx_request_name": item[1],
                 "location": item[2],
                 "number_of_extension": item[3],
@@ -169,31 +173,34 @@ def approve_pbx_request(id_user, role):
         message = "Authentication failed."
         status = 0
         return generate_response(data=data, message=message, status=status)
-    pbx_request_id = request.form["pbx_request_id"]
 
-    query = "SELECT host_port FROM tb_pbx"
-    result = db.execute(operation=Database.READ, query=query)
-    host_port = container_manager.get_port(result[1])
+    id_pbx_request = request.form["id_pbx_request"]
 
-    query = "SELECT id_user, name, location, number_of_extension FROM tb_pbx_request WHERE id = %s"
-    param = [pbx_request_id]
-    result = db.execute(operation=Database.READ, query=query, param=param)
+    query = "SELECT id_user, name, location, number_of_extension, status FROM tb_pbx_request WHERE id_pbx_request = %s"
+    param = [id_pbx_request]
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    status = result[1][0][4]
+    if status == "Approved":
+        data = []
+        message = "PBX Request has been approved before."
+        status = 0
+        return generate_response(data=data, message=message, status=status)
+
     id_user = result[1][0][0]
     name = result[1][0][1]
-    container = container_manager.get_valid_name(id_user, result[1][0][1])
+    vm = vm_manager.get_valid_name(id_user, result[1][0][1])
     location = result[1][0][2]
     number_of_extension = result[1][0][3]
-    host_address = container_manager.get_host_address()
-    container_address = container_manager.get_container_address()
-    container_manager.run(name=container, host_port=host_port)
+    vm_manager.run(name=vm)
 
-    query = "INSERT INTO tb_pbx(id_user, name, container, location, number_of_extension, host_address, host_port, container_address) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
-    param = [id_user, name, container, location, number_of_extension, host_address, host_port, container_address]
-    _ = db.execute(operation=Database.WRITE, query=query, param=param)
+    query = "INSERT INTO tb_pbx(id_user, name, location, number_of_extension, vm_name, vm_address, vm_local_address) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+    param = [id_user, name, location, number_of_extension, vm, "0.0.0.0", "0.0.0.0"]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
 
-    query = "UPDATE tb_pbx_request SET status = %s WHERE id = %s"
-    param = ["Approved", pbx_request_id]
-    _ = db.execute(operation=Database.WRITE, query=query, param=param)
+    query = "UPDATE tb_pbx_request SET status = %s WHERE id_pbx_request = %s"
+    param = ["Approved", id_pbx_request]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
+
     data = []
     message = "PBX request successfully approved."
     status = 1
@@ -202,23 +209,23 @@ def approve_pbx_request(id_user, role):
 @app.route("/delete_pbx_request", methods=["POST"])
 @authenticate
 def delete_pbx_request(id_user, role):
-    pbx_request_id = request.form["pbx_request_id"]
+    id_pbx_request = request.form["id_pbx_request"]
 
     if role == Role.ADMIN:
-        query = "DELETE FROM tb_pbx_request WHERE id = %s"
-        param = [pbx_request_id]
+        query = "DELETE FROM tb_pbx_request WHERE id_pbx_request = %s"
+        param = [id_pbx_request]
     else:
-        query = "SELECT id FROM tb_pbx_request WHERE id = %s AND id_user = %s"
-        param = [pbx_request_id, id_user]
-        result = db.execute(operation=Database.READ, query=query, param=param)
+        query = "SELECT * FROM tb_pbx_request WHERE id_pbx_request = %s AND id_user = %s"
+        param = [id_pbx_request, id_user]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
         if len(result[1]) == 0:
             data = []
             message = "You do not have that PBX request."
             status = 0
             return generate_response(data=data, message=message, status=status)
-        query = "DELETE FROM tb_pbx_request WHERE id = %s AND id_user = %s"
-        param = [pbx_request_id, id_user]
-    _ = db.execute(operation=Database.WRITE, query=query, param=param)
+        query = "DELETE FROM tb_pbx_request WHERE id_pbx_request = %s AND id_user = %s"
+        param = [id_pbx_request, id_user]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
     data = []
     message = "PBX request successfully deleted."
     status = 1
@@ -229,36 +236,34 @@ def delete_pbx_request(id_user, role):
 def get_all_pbxs(id_user, role):
     data = []
     if role == Role.ADMIN:
-        query = "SELECT id_user, tb_user.name, tb_pbx.id, tb_pbx.name, container, location, number_of_extension, host_address, host_port, container_address FROM tb_user JOIN (tb_pbx) ON (tb_user.id = tb_pbx.id_user)"
-        result = db.execute(operation=Database.READ, query=query)
+        query = "SELECT tb_user.id_user, tb_user.name, id_pbx, tb_pbx.name, vm_name, location, number_of_extension, vm_address, vm_local_address FROM tb_user JOIN tb_pbx ON (tb_user.id_user = tb_pbx.id_user)"
+        result = Database.execute(operation=Database.READ, query=query)
         for item in result[1]:
             item_json = {
                 "id_user": item[0],
                 "user_name": item[1],
-                "pbx_id": item[2],
+                "id_pbx": item[2],
                 "pbx_name": item[3],
-                "container": item[4],
+                "vm_name": item[4],
                 "location": item[5],
                 "number_of_extension": item[6],
-                "host_address": item[7],
-                "host_port": item[8],
-                "container_address": item[9],
+                "vm_address": item[7],
+                "vm_local_address": item[8]
             }
             data.append(item_json)
     else:
-        query = "SELECT id, name, container, location, number_of_extension, host_address, host_port, container_address FROM tb_pbx WHERE id_user = %s"
+        query = "SELECT id_pbx, name, vm_name, location, number_of_extension, vm_address, vm_local_address FROM tb_pbx WHERE id_user = %s"
         param = [id_user]
-        result = db.execute(operation=Database.READ, query=query, param=param)
+        result = Database.execute(operation=Database.READ, query=query, param=param)
         for item in result[1]:
             item_json = {
-                "pbx_id": item[0],
+                "id_pbx": item[0],
                 "pbx_name": item[1],
-                "container": item[2],
+                "vm_name": item[2],
                 "location": item[3],
                 "number_of_extension": item[4],
-                "host_address": item[5],
-                "host_port": item[6],
-                "container_address": item[7]
+                "vm_address": item[5],
+                "vm_local_address": item[6]
             }
             data.append(item_json)
     message = "PBXs successfully obtained."
@@ -268,31 +273,192 @@ def get_all_pbxs(id_user, role):
 @app.route("/delete_pbx", methods=["POST"])
 @authenticate
 def delete_pbx(id_user, role):
-    pbx_id = request.form["pbx_id"]
+    id_pbx = request.form["id_pbx"]
 
     if role == Role.ADMIN:
-        query = "SELECT container FROM tb_pbx WHERE id = %s"
-        param = [pbx_id]
+        query = "SELECT vm_name FROM tb_pbx WHERE id_pbx = %s"
+        param = [id_pbx]
     else:
-        query = "SELECT container FROM tb_pbx WHERE id = %s AND id_user = %s"
-        param = [pbx_id, id_user]
-        result = db.execute(operation=Database.READ, query=query, param=param)
+        query = "SELECT vm_name FROM tb_pbx WHERE id_pbx = %s AND id_user = %s"
+        param = [id_pbx, id_user]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
         if len(result[1]) == 0:
             data = []
             message = "You do not have that PBX."
             status = 0
             return generate_response(data=data, message=message, status=status)
-    result = db.execute(operation=Database.READ, query=query, param=param)
-    container = result[1][0][0]
-    container_manager.remove(container)
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    vm = result[1][0][0]
+    vm_manager.remove(name=vm)
 
-    query = "DELETE FROM tb_pbx WHERE id = %s"
-    param = [pbx_id]
-    _ = db.execute(operation=Database.WRITE, query=query, param=param)
+    query = "DELETE FROM tb_pbx WHERE id_pbx = %s"
+    param = [id_pbx]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
     data = []
     message = "PBX successfully deleted."
     status = 1
     return generate_response(data=data, message=message, status=status)
+
+@app.route("/get_all_extensions", methods=["POST"])
+@authenticate
+def get_all_extensions(id_user, role):
+    id_pbx = request.form["id_pbx"]
+
+    if role == Role.NONADMIN:
+        query = "SELECT * FROM tb_pbx WHERE id_pbx = %s AND id_user = %s"
+        param = [id_pbx, id_user]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
+        if len(result[1]) == 0:
+            data = []
+            message = "You do not have that PBX."
+            status = 0
+            return generate_response(data=data, message=message, status=status)
+
+    data = []
+    query = "SELECT id_extension, id_pbx, username, secret FROM tb_extension WHERE id_pbx = %s"
+    param = [id_pbx]
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    for item in result[1]:
+        item_json = {
+            "id_extension": item[0],
+            "id_pbx": item[1],
+            "username": item[2],
+            "secret": item[3]
+        }
+        data.append(item_json)
+    message = "Extensions successfully obtained."
+    status = 1
+    return generate_response(data=data, message=message, status=status)
+
+@app.route("/create_extension", methods=["POST"])
+@authenticate
+def create_extension(id_user, role):
+    id_pbx = request.form["id_pbx"]
+    username = request.form["username"]
+    secret = request.form["secret"]
+
+    if role == Role.NONADMIN:
+        query = "SELECT * FROM tb_pbx WHERE id_pbx = %s AND id_user = %s"
+        param = [id_pbx, id_user]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
+        if len(result[1]) == 0:
+            data = []
+            message = "You do not have that PBX."
+            status = 0
+            return generate_response(data=data, message=message, status=status)
+
+    query = "SELECT number_of_extension FROM tb_pbx WHERE id_pbx = %s"
+    param = [id_pbx]
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    maximum_number_of_extension = result[1][0][0]
+
+    query = "SELECT * FROM tb_extension WHERE id_pbx = %s"
+    param = [id_pbx]
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    current_number_of_extension = len(result[1])
+    if current_number_of_extension >= maximum_number_of_extension:
+        data = []
+        message = "You have reached extension limit."
+        status = 0
+        return generate_response(data=data, message=message, status=status)
+
+    query = "SELECT * FROM tb_extension WHERE id_pbx = %s AND username = %s"
+    param = [id_pbx, username]
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    if len(result[1]) > 0:
+        data = []
+        message = "Extension with specified username has already existed."
+        status = 0
+        return generate_response(data=data, message=message, status=status)
+
+    query = "INSERT INTO tb_extension(id_pbx, username, secret) VALUES (%s, %s, %s)"
+    param = [id_pbx, username, secret]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
+    data = []
+    message = "Extension successfully created."
+    status = 1
+    update_asterisk_config(id_pbx=id_pbx)
+    return generate_response(data=data, message=message, status=status)
+
+@app.route("/update_extension", methods=["POST"])
+@authenticate
+def update_extension(id_user, role):
+    id_extension = request.form["id_extension"]
+    username = request.form["username"]
+    secret = request.form["secret"]
+
+    if role == Role.NONADMIN:
+        query = "SELECT * FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s AND id_user = %s"
+        param = [id_extension, id_user]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
+        if len(result[1]) == 0:
+            data = []
+            message = "You do not have that extension."
+            status = 0
+            return generate_response(data=data, message=message, status=status)
+
+    query = "UPDATE tb_extension SET username = %s, secret = %s WHERE id_extension = %s"
+    param = [username, secret, id_extension]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
+    data = []
+    message = "Extension successfully updated."
+    status = 1
+    update_asterisk_config(id_extension=id_extension)
+    return generate_response(data=data, message=message, status=status)
+
+@app.route("/delete_extension", methods=["POST"])
+@authenticate
+def delete_extension(id_user, role):
+    id_extension = request.form["id_extension"]
+
+    if role == Role.NONADMIN:
+        query = "SELECT * FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s AND id_user = %s"
+        param = [id_extension, id_user]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
+        if len(result[1]) == 0:
+            data = []
+            message = "You do not have that extension."
+            status = 0
+            return generate_response(data=data, message=message, status=status)
+
+    update_asterisk_config(id_extension=id_extension)
+
+    query = "DELETE FROM tb_extension WHERE id_extension = %s"
+    param = [id_extension]
+    _ = Database.execute(operation=Database.WRITE, query=query, param=param)
+    data = []
+    message = "Extension successfully deleted."
+    status = 1
+    return generate_response(data=data, message=message, status=status)
+
+def update_asterisk_config(id_pbx=None, id_extension=None):
+    if id_pbx is None and id_extension is not None:
+        query = "SELECT vm_address, vm_local_address, tb_pbx.id_pbx FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s"
+        param = [id_extension]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
+        vm_address = result[1][0][0]
+        vm_local_address = result[1][0][1]
+        id_pbx = result[1][0][2]
+    else:
+        query = "SELECT vm_address, vm_local_address FROM tb_pbx WHERE id_pbx = %s"
+        param = [id_pbx]
+        result = Database.execute(operation=Database.READ, query=query, param=param)
+        vm_address = result[1][0][0]
+        vm_local_address = result[1][0][1]
+
+    query = "SELECT username, secret FROM tb_extension WHERE id_pbx = %s"
+    param = [id_pbx]
+    result = Database.execute(operation=Database.READ, query=query, param=param)
+    extensions = []
+    for item in result[1]:
+        extension = {
+            "username": item[0],
+            "secret": item[1]
+        }
+        extensions.append(extension)
+
+    VmManager.update_sip_config(external_address=vm_address, local_address=vm_local_address, extensions=extensions)
+    VmManager.update_extensions_config(external_address=vm_address, extensions=extensions)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")

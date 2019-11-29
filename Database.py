@@ -8,7 +8,8 @@ class Database:
     def __init__(self):
         pass
 
-    def execute(self, operation, query, param=None):
+    @staticmethod
+    def execute(operation, query, param=None):
         connection = mysql.connector.connect(host=Secret.HOST,
                                              user=Secret.USER,
                                              passwd=Secret.PASSWORD,

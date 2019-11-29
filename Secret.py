@@ -1,8 +1,8 @@
 #TODO: Move secrets into external file
 class Secret:
-    HOST = "cloudpbx.gcp"
+    HOST = "35.186.151.35"
     USER = "root"
-    PASSWORD = "12345mysql"
-    DB = "db_cloudpbx"
+    PASSWORD = "Admintelk0m"
+    DB = "db_vica"
 
-    CLIENT_ID = "960717492474-ti0d5rj9d87uj5lba8bh9peubfdqqfqd.apps.googleusercontent.com"
+    CLIENT_ID = "587064737111-ut38l1i05j1s7bg0qv7gbk849sd2hab3.apps.googleusercontent.com"
