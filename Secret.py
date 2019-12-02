@@ -5,4 +5,4 @@ class Secret:
     PASSWORD = "Admintelk0m"
     DB = "db_vica"
 
-    CLIENT_ID = "587064737111-ut38l1i05j1s7bg0qv7gbk849sd2hab3.apps.googleusercontent.com"
+    CLIENT_ID = "587064737111-as3mm8rh9t7hrv90deemtoijkt4st53c.apps.googleusercontent.com"

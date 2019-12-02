@@ -75,15 +75,15 @@ def sign_in_with_google():
         param = [email]
         result = Database.execute(operation=Database.READ, query=query, param=param)
 
+        if result[1][0][2] != 1:
+            EmailManager.send_email(result[1][0][1])
+
     data = {
         "name": result[1][0][0],
         "email": result[1][0][1],
         "is_admin": True if result[1][0][2] == 1 else False,
         "token": result[1][0][3]
     }
-
-    if result[1][0][2] != 1:
-        EmailManager.send_email(result[1][0][1])
 
     message = "Login successful"
     status = 1
