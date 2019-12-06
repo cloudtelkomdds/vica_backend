@@ -4,7 +4,7 @@ import requests
 import threading
 import time
 from instance import Instance
-from Database import Database
+from database import Database
 
 class VmManager:
     DEFAULT_CONFIG = {
