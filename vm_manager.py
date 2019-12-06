@@ -103,7 +103,6 @@ class VmManager:
                                                zone=VmManager.DEFAULT_ZONE).execute()
         instances = []
         for item in result["items"]:
-            print(item)
             try:
                 instance = Instance(
                     name=item["name"],
@@ -121,20 +120,23 @@ class VmManager:
         selected_instance = None
         while not preparation_success:
             time.sleep(VmManager.DEFAULT_WAITING_TIME_IN_SECONDS)
-            print("Trying to get instance " + name)
             instances = self.get_instances()
             for instance in instances:
                 if instance.name == name:
-                    try:
-                        self.update_sip_config(external_address=instance.external_address,
-                                               local_address=instance.local_address,
-                                               extensions=self.DEFAULT_EXTENSIONS)
-                        self.update_extensions_config(external_address=instance.external_address,
-                                                      extensions=self.DEFAULT_EXTENSIONS)
-                        preparation_success = 1
-                        selected_instance = instance
-                    except Exception as e:
-                        pass
+                    print("Trying to setup instance " + name)
+                    update_status = False
+                    while not update_status:
+                        try:
+                            self.update_sip_config(external_address=instance.external_address,
+                                                   local_address=instance.local_address,
+                                                   extensions=self.DEFAULT_EXTENSIONS)
+                            self.update_extensions_config(external_address=instance.external_address,
+                                                          extensions=self.DEFAULT_EXTENSIONS)
+                            update_status = True
+                            preparation_success = True
+                            selected_instance = instance
+                        except Exception as e:
+                            pass
         query = "UPDATE tb_pbx SET vm_address = %s, vm_local_address = %s WHERE vm_name = %s"
         param = [selected_instance.external_address, selected_instance.local_address, selected_instance.name]
         _ = Database.execute(operation=Database.WRITE, query=query, param=param)
@@ -161,6 +163,7 @@ class VmManager:
                           "config_string": sip_config
                       },
                       headers=VmManager.DEFAULT_HEADER)
+        return True
 
     @staticmethod
     def generate_extensions_config(extensions):
@@ -180,6 +183,7 @@ class VmManager:
                           "config_string": extensions_config
                       },
                       headers=VmManager.DEFAULT_HEADER)
+        return True
 
     def remove(self, name):
         result = self.compute.instances().delete(project=VmManager.DEFAULT_PROJECT,
