@@ -1,12 +1,17 @@
-import googleapiclient.discovery
 import os
-import requests
 import threading
 import time
-from instance import Instance
+
+import googleapiclient.discovery
+import requests
+
 from database import Database
+from model.instance import Instance
+
 
 class VmManager:
+    DEFAULT_ADDRESS = "UNAVAILABLE"
+
     DEFAULT_CONFIG = {
         "machineType": "https://www.googleapis.com/compute/v1/projects/handy-digit-259807/zones/asia-southeast1-b/machineTypes/custom-1-1024",
         "disks": [
@@ -139,9 +144,9 @@ class VmManager:
     def generate_sip_config(external_address, local_address, extensions):
         sip_config = VmManager.DEFAULT_SIP_GENERAL_CONFIG.format(external_address, local_address)
         for extension in extensions:
-            sip_extensions_config = VmManager.DEFAULT_SIP_EXTENSIONS_CONFIG.format(extension["username"],
-                                                                                   extension["username"],
-                                                                                   extension["secret"])
+            sip_extensions_config = VmManager.DEFAULT_SIP_EXTENSIONS_CONFIG.format(extension.username,
+                                                                                   extension.username,
+                                                                                   extension.secret)
             sip_config = sip_config + sip_extensions_config
         return sip_config
 
@@ -162,7 +167,7 @@ class VmManager:
         extensions_config = VmManager.DEFAULT_EXTENSIONS_GENERAL_CONFIG
         for extension in extensions:
             extensions_extensions_config = VmManager.DEFAULT_EXTENSIONS_EXTENSIONS_CONFIG.format(
-                extension["username"], extension["username"])
+                extension.username, extension.username)
             extensions_config = extensions_config + extensions_extensions_config
         return extensions_config
 

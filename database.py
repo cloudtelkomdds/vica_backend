@@ -1,12 +1,10 @@
 import mysql.connector
-from Secret import Secret
+from secret import Secret
+from model.database_response import DatabaseResponse
 
 class Database:
     READ = 0
     WRITE = 1
-
-    def __init__(self):
-        pass
 
     @staticmethod
     def execute(operation, query, param=None):
@@ -21,10 +19,16 @@ class Database:
                     cursor.execute(query)
                 else:
                     cursor.execute(query, param)
-                return True, cursor.fetchall()
+                return DatabaseResponse(data=cursor.fetchall(),
+                                        message="",
+                                        status=True)
             elif operation == Database.WRITE:
                 cursor.execute(query, param)
                 connection.commit()
-                return True, cursor.rowcount
+                return DatabaseResponse(data=[],
+                                        message="",
+                                        status=True)
         except Exception as e:
-            return False, e
+            return DatabaseResponse(data=[],
+                                    message=str(e),
+                                    status=False)
