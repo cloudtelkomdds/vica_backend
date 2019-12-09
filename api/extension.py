@@ -92,13 +92,12 @@ def create_extension(user):
                             status=ResponseStatus.FAILED)
         return response.get_json()
 
-    update_asterisk_config(id_extension=id_pbx)
-
     query = "INSERT INTO tb_extension(id_pbx, username, secret) VALUES (%s, %s, %s)"
     param = [id_pbx, username, secret]
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
+    update_asterisk_config(id_pbx=id_pbx)
     response = Response(data=[],
                         message=Message.SUCCESS,
                         status=ResponseStatus.SUCCESS)
@@ -164,6 +163,7 @@ def delete_extension(user):
 
 def update_asterisk_config(id_pbx=None, id_extension=None):
     if id_pbx is None and id_extension is not None:
+        print("id_extension = {0}".format(id_extension))
         query = "SELECT vm_address, vm_local_address, tb_pbx.id_pbx FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s"
         param = [id_extension]
         db_response = Database.execute(operation=Database.READ,

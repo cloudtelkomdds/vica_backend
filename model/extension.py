@@ -17,3 +17,16 @@ class Extension:
             self.KEY_USERNAME: self.username,
             self.KEY_SECRET: self.secret
         }
+
+    @staticmethod
+    def get_default_extension():
+        return [
+            Extension(id_extension=0,
+                      id_pbx=0,
+                      username="99999",
+                      secret="99999"),
+            Extension(id_extension=0,
+                      id_pbx=0,
+                      username="88888",
+                      secret="88888")
+        ]

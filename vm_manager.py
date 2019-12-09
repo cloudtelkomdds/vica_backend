@@ -4,6 +4,7 @@ import time
 
 import googleapiclient.discovery
 import requests
+from model.extension import Extension
 
 from database import Database
 from model.instance import Instance
@@ -73,17 +74,6 @@ class VmManager:
 
     DEFAULT_WAITING_TIME_IN_SECONDS = 3
 
-    DEFAULT_EXTENSIONS = [
-        {
-            "username": "99999",
-            "secret": "99999"
-        },
-        {
-            "username": "88888",
-            "secret": "88888"
-        }
-    ]
-
     def __init__(self):
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service_account_vica.json"
         self.compute = googleapiclient.discovery.build("compute", "v1")
@@ -124,19 +114,16 @@ class VmManager:
             for instance in instances:
                 if instance.name == name:
                     print("Trying to setup instance " + name)
-                    update_status = False
-                    while not update_status:
-                        try:
-                            self.update_sip_config(external_address=instance.external_address,
-                                                   local_address=instance.local_address,
-                                                   extensions=self.DEFAULT_EXTENSIONS)
-                            self.update_extensions_config(external_address=instance.external_address,
-                                                          extensions=self.DEFAULT_EXTENSIONS)
-                            update_status = True
-                            preparation_success = True
-                            selected_instance = instance
-                        except Exception as e:
-                            pass
+                    try:
+                        self.update_sip_config(external_address=instance.external_address,
+                                               local_address=instance.local_address,
+                                               extensions=Extension.get_default_extension())
+                        self.update_extensions_config(external_address=instance.external_address,
+                                                      extensions=Extension.get_default_extension())
+                        preparation_success = True
+                        selected_instance = instance
+                    except Exception as e:
+                        raise Exception(e)
         query = "UPDATE tb_pbx SET vm_address = %s, vm_local_address = %s WHERE vm_name = %s"
         param = [selected_instance.external_address, selected_instance.local_address, selected_instance.name]
         _ = Database.execute(operation=Database.WRITE, query=query, param=param)
