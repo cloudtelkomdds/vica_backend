@@ -77,7 +77,8 @@ class VmManager:
     DEFAULT_WAITING_TIME_IN_SECONDS = 3
 
     def __init__(self):
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./service_account_vica.json"
+        # os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/cloudtelkomdds/vica_backend/service_account_vica.json"
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service_account_vica.json"
         self.compute = googleapiclient.discovery.build("compute", "v1")
 
     def run(self, name, origin_pbx, origin_email):
