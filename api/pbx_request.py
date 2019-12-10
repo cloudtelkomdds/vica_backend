@@ -41,6 +41,15 @@ def create_pbx_request(user):
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
+
+    email_subject = "New PBX Request"
+    email_body = "Hello Admin. There is a new PBX Request {0}. Please take a look in the web admin.".format(name)
+    destination = "cloudtelkomdds@gmail.com"
+    an_email = Email(subject=email_subject,
+                     body=email_body,
+                     destination=destination)
+    EmailManager.send_email(an_email)
+
     response = Response(data=[],
                         message=Message.SUCCESS,
                         status=ResponseStatus.SUCCESS)
@@ -117,7 +126,16 @@ def approve_pbx_request(user):
     vm = vm_manager.get_valid_name(id_user, name)
     location = db_response.data[0][2]
     number_of_extension = db_response.data[0][3]
-    vm_manager.run(name=vm)
+
+    query = "SELECT email FROM tb_user WHERE id_user = %s"
+    param = [id_user]
+    db_response = Database.execute(operation=Database.READ,
+                                   query=query,
+                                   param=param)
+    email = db_response.data[0][0]
+    vm_manager.run(name=vm,
+                   origin_pbx=name,
+                   origin_email=email)
 
     query = "INSERT INTO tb_pbx(id_user, name, location, number_of_extension, vm_name, vm_address, vm_local_address) VALUES (%s, %s, %s, %s, %s, %s, %s)"
     param = [id_user, name, location, number_of_extension, vm, VmManager.DEFAULT_ADDRESS, VmManager.DEFAULT_ADDRESS]
@@ -129,20 +147,6 @@ def approve_pbx_request(user):
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
-
-    query = "SELECT email FROM tb_user WHERE id_user = %s"
-    param = [id_user]
-    db_response = Database.execute(operation=Database.READ,
-                                   query=query,
-                                   param=param)
-    email = db_response.data[0][0]
-    date = CalendarManager.get_now_date()
-    email_subject = "PBX Request Approval"
-    email_body = "Congratulations! Your PBX Request has been approved on {0}. Your PBX now is being prepared. Please wait...".format(date)
-    an_email = Email(subject=email_subject,
-                     body=email_body,
-                     destination=email)
-    EmailManager.send_email(an_email)
 
     response = Response(data=[],
                         message=Message.SUCCESS,

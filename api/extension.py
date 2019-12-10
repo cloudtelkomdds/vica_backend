@@ -8,6 +8,8 @@ from model.response import Response
 from message import Message
 from response_status import ResponseStatus
 from model.extension import Extension
+from model.email import Email
+from email_manager import EmailManager
 
 api_extension = Blueprint(Category.EXTENSION, __name__)
 
@@ -102,6 +104,20 @@ def create_extension(user):
                          query=query,
                          param=param)
     update_asterisk_config(id_pbx=id_pbx)
+
+    query = "SELECT vm_address FROM tb_pbx WHERE id_pbx = %s"
+    param = [id_pbx]
+    db_response = Database.execute(operation=Database.READ,
+                                   query=query,
+                                   param=param)
+    vm_address = db_response.data[0][0]
+    email_subject = "PBX Extension Notification"
+    email_body = "You have been added to extension number {0}, password {1}, on IP {2}. You can use it in your softphone.".format(username, secret, vm_address)
+    an_email = Email(subject=email_subject,
+                     body=email_body,
+                     destination=email_assignee)
+    EmailManager.send_email(an_email)
+
     response = Response(data=[],
                         message=Message.SUCCESS,
                         status=ResponseStatus.SUCCESS)

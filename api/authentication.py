@@ -12,6 +12,7 @@ from utils import Utils
 from message import Message
 from response_status import ResponseStatus
 from model.user import User
+from model.email import Email
 
 api_authentication = Blueprint(Category.AUTHENTICATION, __name__)
 
@@ -42,8 +43,13 @@ def sign_in_with_google():
         db_response = Database.execute(operation=Database.READ,
                                        query=query,
                                        param=param)
-        # if result[1][0][2] != 1:
-        #     EmailManager.send_email(result[1][0][1])
+
+        email_subject = "Welcome to Vica!"
+        email_body = "Welcome to Vica by Telkom Cloud DDS. Please use the service wisely."
+        an_email = Email(subject=email_subject,
+                         body=email_body,
+                         destination=email)
+        EmailManager.send_email(an_email)
 
     print(db_response.data)
     user = User(id_user=db_response.data[0][0],

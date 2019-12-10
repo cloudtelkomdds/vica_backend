@@ -8,7 +8,9 @@ from model.extension import Extension
 
 from database import Database
 from model.instance import Instance
-
+from calendar_manager import CalendarManager
+from model.email import Email
+from email_manager import EmailManager
 
 class VmManager:
     DEFAULT_ADDRESS = "UNAVAILABLE"
@@ -78,13 +80,13 @@ class VmManager:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service_account_vica.json"
         self.compute = googleapiclient.discovery.build("compute", "v1")
 
-    def run(self, name):
+    def run(self, name, origin_pbx, origin_email):
         try:
             VmManager.DEFAULT_CONFIG["name"] = name
             self.compute.instances().insert(project=VmManager.DEFAULT_PROJECT,
                                             zone=VmManager.DEFAULT_ZONE,
                                             body=VmManager.DEFAULT_CONFIG).execute()
-            threading.Thread(target=self.prepare_instance, args=(name,)).start()
+            threading.Thread(target=self.prepare_instance, args=(name, origin_pbx, origin_email)).start()
         except Exception as e:
             raise e
 
@@ -104,7 +106,7 @@ class VmManager:
                 pass
         return instances
 
-    def prepare_instance(self, name):
+    def prepare_instance(self, name, origin_pbx, origin_email):
         print("Preparing instance " + name)
         preparation_success = 0
         selected_instance = None
@@ -128,6 +130,14 @@ class VmManager:
         param = [selected_instance.external_address, selected_instance.local_address, selected_instance.name]
         _ = Database.execute(operation=Database.WRITE, query=query, param=param)
         print("Finish preparing instance " + name)
+
+        email_subject = "PBX Request Approval"
+        date = CalendarManager.get_now_date()
+        email_body = "Congratulations. Your PBX Request {0} has been approved on {1}. Your PBX now is ready for use".format(origin_pbx, date)
+        an_email = Email(subject=email_subject,
+                         body=email_body,
+                         destination=origin_email)
+        EmailManager.send_email(an_email)
 
     @staticmethod
     def generate_sip_config(external_address, local_address, extensions):
