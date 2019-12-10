@@ -12,6 +12,7 @@ from model.pbx_request import PbxRequest
 from model.email import Email
 from email_manager import EmailManager
 from calendar_manager import CalendarManager
+import re
 
 api_pbx_request = Blueprint(Category.PBX_REQUEST, __name__)
 vm_manager = VmManager()
@@ -22,6 +23,13 @@ def create_pbx_request(user):
     name = request.form["name"]
     location = request.form["location"]
     number_of_extension = request.form["number_of_extension"]
+
+    regex = re.compile("^[a-zA-Z0-9- ]+$")
+    if not regex.match(name):
+        response = Response(data=[],
+                            message=Message.PBX_REQUEST_NAME_NOT_ACCEPTED,
+                            status=ResponseStatus.FAILED)
+        return response.get_json()
 
     query = "SELECT name FROM tb_pbx_request WHERE id_user = %s"
     param = [user.id_user]
@@ -142,8 +150,8 @@ def approve_pbx_request(user):
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
-    query = "UPDATE tb_pbx_request SET status = %s WHERE id_pbx_request = %s"
-    param = [PbxRequest.STATUS_APPROVED, id_pbx_request]
+    query = "DELETE FROM tb_pbx_request WHERE id_pbx_request = %s AND id_user = %s"
+    param = [id_pbx_request, id_user]
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)

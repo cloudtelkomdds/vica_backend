@@ -9,3 +9,4 @@ class Message:
     PBX_REQUEST_ALREADY_EXIST = "PBX Request already exists."
     PBX_REQUEST_ALREADY_APPROVED = "PBX Request already approved."
     PBX_REQUEST_DOES_NOT_EXIST = "PBX Request does not exist."
+    PBX_REQUEST_NAME_NOT_ACCEPTED = "PBX Request not accepted. Please only use alphanumeric characters."
