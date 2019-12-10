@@ -5,18 +5,20 @@ class PbxRequest:
     KEY_LOCATION = "location"
     KEY_NUMBER_OF_EXTENSION = "number_of_extension"
     KEY_STATUS = "status"
+    KEY_DATE = "date"
 
     STATUS_APPROVED = "Approved"
     STATUS_PENDING = "Pending"
     STATUS_DEFAULT = STATUS_PENDING
 
-    def __init__(self, id_pbx_request, id_user, name, location, number_of_extension, status):
+    def __init__(self, id_pbx_request, id_user, name, location, number_of_extension, status, date):
         self.id_pbx_request = id_pbx_request
         self.id_user = id_user
         self.name = name
         self.location = location
         self.number_of_extension = number_of_extension
         self.status = status
+        self.date = date
 
     def get_json(self):
         return {
@@ -25,5 +27,6 @@ class PbxRequest:
             self.KEY_NAME: self.name,
             self.KEY_LOCATION: self.location,
             self.KEY_NUMBER_OF_EXTENSION: self.number_of_extension,
-            self.KEY_STATUS: self.status
+            self.KEY_STATUS: self.status,
+            self.KEY_DATE: self.date
         }

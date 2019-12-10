@@ -35,8 +35,9 @@ def create_pbx_request(user):
                                 status=ResponseStatus.SUCCESS)
             return response.get_json()
 
-    query = "INSERT INTO tb_pbx_request(id_user, name, location, number_of_extension, status) VALUES (%s, %s, %s, %s, %s)"
-    param = [user.id_user, name, location, number_of_extension, PbxRequest.STATUS_DEFAULT]
+    date = CalendarManager.get_now_date()
+    query = "INSERT INTO tb_pbx_request(id_user, name, location, number_of_extension, status, date) VALUES (%s, %s, %s, %s, %s, %s)"
+    param = [user.id_user, name, location, number_of_extension, PbxRequest.STATUS_DEFAULT, date]
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
@@ -50,7 +51,7 @@ def create_pbx_request(user):
 def get_all_pbx_requests(user):
     pbx_requests = []
     if not user.is_admin:
-        query = "SELECT id_pbx_request, name, location, number_of_extension, status FROM tb_pbx_request WHERE id_user = %s"
+        query = "SELECT id_pbx_request, name, location, number_of_extension, status, date FROM tb_pbx_request WHERE id_user = %s"
         param = [user.id_user]
         db_response = Database.execute(operation=Database.READ,
                                        query=query,
@@ -61,10 +62,12 @@ def get_all_pbx_requests(user):
                                      location=item[2],
                                      number_of_extension=item[3],
                                      status=item[4],
-                                     id_user= user.id_user)
-            pbx_requests.append(pbx_request.get_json())
+                                     id_user= user.id_user,
+                                     date=item[5])
+            if pbx_request.status != PbxRequest.STATUS_APPROVED:
+                pbx_requests.append(pbx_request.get_json())
     else:
-        query = "SELECT tb_user.id_user, tb_user.name, id_pbx_request, tb_pbx_request.name, location, number_of_extension, status FROM tb_user JOIN tb_pbx_request ON tb_user.id_user = tb_pbx_request.id_user"
+        query = "SELECT tb_user.id_user, tb_user.name, id_pbx_request, tb_pbx_request.name, location, number_of_extension, status, date, tb_user.email FROM tb_user JOIN tb_pbx_request ON tb_user.id_user = tb_pbx_request.id_user"
         db_response = Database.execute(operation=Database.READ,
                                        query=query)
         for item in db_response.data:
@@ -73,10 +76,13 @@ def get_all_pbx_requests(user):
                                      location=item[4],
                                      number_of_extension=item[5],
                                      status=item[6],
-                                     id_user=item[0])
+                                     id_user=item[0],
+                                     date=item[7])
             pbx_request_json = pbx_request.get_json()
             pbx_request_json["user_name"] = item[1]
-            pbx_requests.append(pbx_request_json)
+            pbx_request_json["user_email"] = item[8]
+            if pbx_request.status != PbxRequest.STATUS_APPROVED:
+                pbx_requests.append(pbx_request_json)
 
     response = Response(data=pbx_requests,
                         message=Message.SUCCESS,

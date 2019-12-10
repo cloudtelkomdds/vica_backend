@@ -28,7 +28,7 @@ def get_all_extensions(user):
                                 status=ResponseStatus.FAILED)
             return response.get_json()
 
-    query = "SELECT id_extension, id_pbx, username, secret FROM tb_extension WHERE id_pbx = %s"
+    query = "SELECT id_extension, id_pbx, username, secret, name_assignee, email_assignee FROM tb_extension WHERE id_pbx = %s"
     param = [id_pbx]
     db_response = Database.execute(operation=Database.READ, query=query, param=param)
     extensions = []
@@ -36,7 +36,9 @@ def get_all_extensions(user):
         extension = Extension(id_extension=item[0],
                               id_pbx=item[1],
                               username=item[2],
-                              secret=item[3])
+                              secret=item[3],
+                              name_assignee=item[4],
+                              email_assignee=item[5])
         extensions.append(extension.get_json())
 
     response = Response(data=extensions,
@@ -50,6 +52,8 @@ def create_extension(user):
     id_pbx = request.form["id_pbx"]
     username = request.form["username"]
     secret = request.form["secret"]
+    name_assignee = request.form["name_assignee"]
+    email_assignee = request.form["email_assignee"]
 
     if not user.is_admin:
         query = "SELECT * FROM tb_pbx WHERE id_pbx = %s AND id_user = %s"
@@ -92,8 +96,8 @@ def create_extension(user):
                             status=ResponseStatus.FAILED)
         return response.get_json()
 
-    query = "INSERT INTO tb_extension(id_pbx, username, secret) VALUES (%s, %s, %s)"
-    param = [id_pbx, username, secret]
+    query = "INSERT INTO tb_extension(id_pbx, username, secret, name_assignee, email_assignee) VALUES (%s, %s, %s, %s, %s)"
+    param = [id_pbx, username, secret, name_assignee, email_assignee]
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
@@ -181,7 +185,7 @@ def update_asterisk_config(id_pbx=None, id_extension=None):
         vm_address = db_response.data[0][0]
         vm_local_address = db_response.data[0][1]
 
-    query = "SELECT id_extension, username, secret FROM tb_extension WHERE id_pbx = %s"
+    query = "SELECT id_extension, username, secret, name_assignee, email_assignee FROM tb_extension WHERE id_pbx = %s"
     param = [id_pbx]
     db_response = Database.execute(operation=Database.READ,
                                    query=query,
@@ -191,7 +195,9 @@ def update_asterisk_config(id_pbx=None, id_extension=None):
         extension = Extension(id_extension=item[0],
                               username=item[1],
                               secret=item[2],
-                              id_pbx=id_pbx)
+                              id_pbx=id_pbx,
+                              name_assignee=item[3],
+                              email_assignee=item[4])
         extensions.append(extension)
 
     VmManager.update_sip_config(external_address=vm_address, local_address=vm_local_address, extensions=extensions)

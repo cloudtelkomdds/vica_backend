@@ -33,7 +33,7 @@ def get_all_pbxs(user):
                       id_user=user.id_user)
             pbxs.append(pbx.get_json())
     else:
-        query = "SELECT tb_user.id_user, tb_user.name, id_pbx, tb_pbx.name, vm_name, location, number_of_extension, vm_address, vm_local_address FROM tb_user JOIN tb_pbx ON (tb_user.id_user = tb_pbx.id_user)"
+        query = "SELECT tb_user.id_user, tb_user.name, id_pbx, tb_pbx.name, vm_name, location, number_of_extension, vm_address, vm_local_address, tb_user.email FROM tb_user JOIN tb_pbx ON (tb_user.id_user = tb_pbx.id_user)"
         db_response = Database.execute(operation=Database.READ,
                                        query=query)
         for item in db_response.data:
@@ -47,6 +47,7 @@ def get_all_pbxs(user):
                       vm_local_address=item[8])
             pbx_json = pbx.get_json()
             pbx_json["user_name"] = item[1]
+            pbx_json["user_email"] = item[9]
             pbxs.append(pbx_json)
 
     response = Response(data=pbxs,
