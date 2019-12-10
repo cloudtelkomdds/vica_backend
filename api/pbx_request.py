@@ -9,6 +9,9 @@ from model.response import Response
 from message import Message
 from response_status import ResponseStatus
 from model.pbx_request import PbxRequest
+from model.email import Email
+from email_manager import EmailManager
+from calendar_manager import CalendarManager
 
 api_pbx_request = Blueprint(Category.PBX_REQUEST, __name__)
 vm_manager = VmManager()
@@ -120,6 +123,20 @@ def approve_pbx_request(user):
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
+
+    query = "SELECT email FROM tb_user WHERE id_user = %s"
+    param = [id_user]
+    db_response = Database.execute(operation=Database.READ,
+                                   query=query,
+                                   param=param)
+    email = db_response.data[0][0]
+    date = CalendarManager.get_now_date()
+    email_subject = "PBX Request Approval"
+    email_body = "Congratulations! Your PBX Request has been approved on {0}. Your PBX now is being prepared. Please wait...".format(date)
+    an_email = Email(subject=email_subject,
+                     body=email_body,
+                     destination=email)
+    EmailManager.send_email(an_email)
 
     response = Response(data=[],
                         message=Message.SUCCESS,

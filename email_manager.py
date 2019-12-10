@@ -1,31 +1,32 @@
 import smtplib
+from model.email import Email
+from secret import Secret
 
 class EmailManager:
-    SMTP_SERVER_ADDRESS = "smtp.gmail.com"
-    SMTP_SERVER_PORT = 465
-    ORIGIN_EMAIL = "8yesayesa@gmail.com"
-    ORIGIN_EMAIL_PASS = "fxeiwcxqryrjhocb"
-    SUBJECT = "Welcome to Telkom CloudPBX"
-    BODY = "Hello. Welcome to Telkom CloudPBX. Please use the service wisely."
-
     @staticmethod
-    def send_email(destination_email):
+    def send_email(email):
+        print(email.destination)
+        print(email.subject)
+        print(email.body)
         content = """\
 From: {0}
 To: {1}
 Subject: {2}
 {3}
-""".format(EmailManager.ORIGIN_EMAIL, destination_email, EmailManager.SUBJECT, EmailManager.BODY)
+""".format(Secret.ORIGIN_EMAIL, email.destination, email.subject, email.body)
 
         try:
-            server = smtplib.SMTP_SSL(EmailManager.SMTP_SERVER_ADDRESS, EmailManager.SMTP_SERVER_PORT)
+            server = smtplib.SMTP_SSL(Secret.SMTP_SERVER_ADDRESS, Secret.SMTP_SERVER_PORT)
             server.ehlo()
-            server.login(EmailManager.ORIGIN_EMAIL, EmailManager.ORIGIN_EMAIL_PASS)
-            server.sendmail(EmailManager.ORIGIN_EMAIL, destination_email, content)
+            server.login(Secret.ORIGIN_EMAIL, Secret.ORIGIN_EMAIL_PASS)
+            server.sendmail(Secret.ORIGIN_EMAIL, email.destination, content)
             server.close()
             print("Email sent.")
         except Exception as e:
             raise e
 
 if __name__ == "__main__":
-    EmailManager.send_email("ysyesayesa@gmail.com")
+    an_email = Email(subject="Welcome to CloudPBX",
+                     body="Please use the service wisely.",
+                     destination="ysyesayesa@gmail.com")
+    EmailManager.send_email(an_email)
