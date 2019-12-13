@@ -45,6 +45,7 @@ class VmManager:
         "[general]\n" + \
         "externip={0}\n" + \
         "localnet={1}/255.255.255.255\n" + \
+        "videosupport=yes\n" + \
         "\n"
 
     DEFAULT_SIP_EXTENSIONS_CONFIG = \
