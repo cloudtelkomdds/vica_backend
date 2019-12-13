@@ -150,8 +150,8 @@ def approve_pbx_request(user):
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
-    query = "UPDATE tb_pbx_request SET status = %s WHERE id_pbx_request = %s"
-    param = [PbxRequest.STATUS_APPROVED, id_pbx_request]
+    query = "DELETE FROM tb_pbx_request WHERE id_pbx_request = %s AND id_user = %s"
+    param = [id_pbx_request, id_user]
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
