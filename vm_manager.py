@@ -55,7 +55,7 @@ class VmManager:
         "host=dynamic\n" + \
         "username={1}\n" + \
         "secret={2}\n" + \
-        "canreinvite=yes\n" + \
+        "canreinvite=no\n" + \
         "nat=yes\n" + \
         "context=phones\n" + \
         "dtmfmode=rfc2833\n" + \
