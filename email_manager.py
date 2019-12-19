@@ -8,12 +8,7 @@ class EmailManager:
         print(email.destination)
         print(email.subject)
         print(email.body)
-        content = """\
-From: {0}
-To: {1}
-Subject: {2}
-{3}
-""".format(Secret.ORIGIN_EMAIL, email.destination, email.subject, email.body)
+        content = "From: {0}\nTo: {1}\nSubject: {2}\n\n{3}".format(Secret.ORIGIN_EMAIL, email.destination, email.subject, email.body)
 
         try:
             server = smtplib.SMTP_SSL(Secret.SMTP_SERVER_ADDRESS, Secret.SMTP_SERVER_PORT)
@@ -26,7 +21,10 @@ Subject: {2}
             raise e
 
 if __name__ == "__main__":
-    an_email = Email(subject="Welcome to CloudPBX",
-                     body="Please use the service wisely.",
-                     destination="ysyesayesa@gmail.com")
+    subject = "Welcome to CloudPBX"
+    body = "Welcome to CloudPBX.\nYour username: 12345\nYour password: 54321\nPlease use the service wisely."
+    destination = "ysyesayesa@gmail.com"
+    an_email = Email(subject=subject,
+                     body=body,
+                     destination=destination)
     EmailManager.send_email(an_email)
