@@ -44,14 +44,11 @@ def sign_in_with_google():
                                        query=query,
                                        param=param)
 
-        email_subject = "Welcome to Vica!"
-        email_body = "Welcome to Vica by Telkom Cloud DDS. Please use the service wisely."
-        an_email = Email(subject=email_subject,
-                         body=email_body,
+        an_email = Email(subject=Message.EMAIL_NEW_USER_LOGIN_SUBJECT,
+                         body=Message.EMAIL_NEW_USER_LOGIN_BODY,
                          destination=email)
         EmailManager.send_email(an_email)
 
-    print(db_response.data)
     user = User(id_user=db_response.data[0][0],
                 name=db_response.data[0][1],
                 email=db_response.data[0][2],

@@ -105,15 +105,16 @@ def create_extension(user):
                          param=param)
     update_asterisk_config(id_pbx=id_pbx)
 
-    query = "SELECT vm_address FROM tb_pbx WHERE id_pbx = %s"
+    query = "SELECT tb_pbx.name, vm_address FROM tb_pbx WHERE id_pbx = %s"
     param = [id_pbx]
     db_response = Database.execute(operation=Database.READ,
                                    query=query,
                                    param=param)
-    vm_address = db_response.data[0][0]
-    email_subject = "PBX Extension Notification"
-    email_body = "You have been added to extension number {0}, password {1}, on IP {2}. You can use it in your softphone.".format(username, secret, vm_address)
-    an_email = Email(subject=email_subject,
+    pbx_name = db_response.data[0][0]
+    vm_address = db_response.data[0][1]
+
+    email_body = Message.EMAIL_EXTENSION_ADDED_BODY.format(pbx_name, vm_address, username, secret)
+    an_email = Email(subject=Message.EMAIL_EXTENSION_ADDED_SUBJECT,
                      body=email_body,
                      destination=email_assignee)
     EmailManager.send_email(an_email)
@@ -131,7 +132,7 @@ def update_extension(user):
     secret = request.form["secret"]
 
     if not user.is_admin:
-        query = "SELECT * FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s AND id_user = %s"
+        query = "SELECT tb_extension.email_assignee FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s AND id_user = %s"
         param = [id_extension, user.id_user]
         db_response = Database.execute(operation=Database.READ,
                                        query=query,
@@ -148,6 +149,22 @@ def update_extension(user):
                          query=query,
                          param=param)
     update_asterisk_config(id_extension=id_extension)
+
+    query = "SELECT tb_pbx.name, tb_pbx.vm_address, tb_extension.email_assignee FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s"
+    param = [id_extension]
+    db_response = Database.execute(operation=Database.READ,
+                                   query=query,
+                                   param=param)
+    pbx_name = db_response.data[0][0]
+    vm_address = db_response.data[0][1]
+    email_assignee = db_response.data[0][2]
+
+    email_body = Message.EMAIL_EXTENSION_MODIFIED_BODY.format(pbx_name, vm_address, username, secret)
+    email = Email(subject=Message.EMAIL_EXTENSION_MODIFIED_SUBJECT,
+                  body=email_body,
+                  destination=email_assignee)
+    EmailManager.send_email(email)
+
     response = Response(data=[],
                         message=Message.SUCCESS,
                         status=ResponseStatus.SUCCESS)
@@ -159,7 +176,7 @@ def delete_extension(user):
     id_extension = request.form["id_extension"]
 
     if not user.is_admin:
-        query = "SELECT * FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s AND id_user = %s"
+        query = "SELECT tb_extension.email_assignee FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s AND id_user = %s"
         param = [id_extension, user.id_user]
         db_response = Database.execute(operation=Database.READ,
                                        query=query,
@@ -171,11 +188,26 @@ def delete_extension(user):
             return response.get_json()
     update_asterisk_config(id_extension=id_extension)
 
+    query = "SELECT tb_pbx.name, tb_extension.email_assignee FROM tb_pbx JOIN tb_extension ON tb_pbx.id_pbx = tb_extension.id_pbx WHERE id_extension = %s"
+    param = [id_extension]
+    db_response = Database.execute(operation=Database.READ,
+                                   query=query,
+                                   param=param)
+    pbx_name = db_response.data[0][0]
+    email_assignee = db_response.data[0][1]
+
     query = "DELETE FROM tb_extension WHERE id_extension = %s"
     param = [id_extension]
     _ = Database.execute(operation=Database.WRITE,
                          query=query,
                          param=param)
+
+    email_body = Message.EMAIL_EXTENSION_DELETED_BODY.format(pbx_name)
+    email = Email(subject=Message.EMAIL_EXTENSION_DELETED_SUBJECT,
+                  body=email_body,
+                  destination=email_assignee)
+    EmailManager.send_email(email)
+
     response = Response(data=[],
                         message=Message.SUCCESS,
                         status=ResponseStatus.SUCCESS)

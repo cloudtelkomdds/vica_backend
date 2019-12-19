@@ -8,6 +8,8 @@ from model.response import Response
 from model.pbx import Pbx
 from message import Message
 from response_status import ResponseStatus
+from model.email import Email
+from email_manager import EmailManager
 
 api_pbx = Blueprint(Category.PBX, __name__)
 vm_manager = VmManager()
@@ -71,19 +73,33 @@ def delete_pbx(user):
                                 message=Message.PBX_DOES_NOT_EXIST,
                                 status=ResponseStatus.FAILED)
             return response.get_json()
+        vm_name = db_response.data[0][0]
+        vm_manager.remove(name=vm_name)
+        query = "DELETE FROM tb_pbx WHERE id_pbx = %s"
+        param = [id_pbx]
+        _ = Database.execute(operation=Database.WRITE,
+                             query=query,
+                             param=param)
     else:
-        query = "SELECT vm_name FROM tb_pbx WHERE id_pbx = %s"
+        query = "SELECT vm_name, tb_pbx.name, email FROM tb_pbx JOIN tb_user ON tb_pbx.id_user = tb_user.id_user WHERE id_pbx = %s"
         param = [id_pbx]
         db_response = Database.execute(operation=Database.READ,
                                        query=query,
                                        param=param)
-    vm_name = db_response.data[0][0]
-    vm_manager.remove(name=vm_name)
-    query = "DELETE FROM tb_pbx WHERE id_pbx = %s"
-    param = [id_pbx]
-    _ = Database.execute(operation=Database.WRITE,
-                         query=query,
-                         param=param)
+        vm_name = db_response.data[0][0]
+        pbx_name = db_response.data[0][1]
+        destination = db_response.data[0][2]
+        vm_manager.remove(name=vm_name)
+        query = "DELETE FROM tb_pbx WHERE id_pbx = %s"
+        param = [id_pbx]
+        _ = Database.execute(operation=Database.WRITE,
+                             query=query,
+                             param=param)
+        email_body = Message.EMAIL_PBX_DELETED_BODY.format(pbx_name)
+        email = Email(subject=Message.EMAIL_PBX_DELETED_SUBJECT,
+                      body=email_body,
+                      destination=destination)
+        EmailManager.send_email(email)
 
     response = Response(data=[],
                         message=Message.SUCCESS,

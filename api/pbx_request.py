@@ -50,10 +50,9 @@ def create_pbx_request(user):
                          query=query,
                          param=param)
 
-    email_subject = "New PBX Request"
-    email_body = "Hello Admin. There is a new PBX Request {0}. Please take a look in the web admin.".format(name)
+    email_body = Message.EMAIL_PBX_REQUEST_CREATED_BODY.format(user.email, name)
     destination = "cloudtelkomdds@gmail.com"
-    an_email = Email(subject=email_subject,
+    an_email = Email(subject=Message.EMAIL_PBX_REQUEST_CREATED_SUBJECT,
                      body=email_body,
                      destination=destination)
     EmailManager.send_email(an_email)
@@ -179,13 +178,28 @@ def delete_pbx_request(user):
             return response.get_json()
         query = "DELETE FROM tb_pbx_request WHERE id_pbx_request = %s AND id_user = %s"
         param = [id_pbx_request, user.id_user]
+        _ = Database.execute(operation=Database.WRITE,
+                             query=query,
+                             param=param)
     else:
+        query = "SELECT tb_pbx_request.name, email FROM tb_user JOIN tb_pbx_request ON tb_user.id_user = tb_pbx_request.id_user WHERE id_pbx_request = %s"
+        param = [id_pbx_request]
+        db_response = Database.execute(operation=Database.READ,
+                                       query=query,
+                                       param=param)
+        email_body = Message.EMAIL_PBX_REQUEST_REJECTED_BODY.format(db_response.data[0][0])
+        email_destination = db_response.data[0][1]
+        email = Email(subject=Message.EMAIL_PBX_REQUEST_REJECTED_SUBJECT,
+                      body=email_body,
+                      destination=email_destination)
+
         query = "DELETE FROM tb_pbx_request WHERE id_pbx_request = %s"
         param = [id_pbx_request]
+        _ = Database.execute(operation=Database.WRITE,
+                             query=query,
+                             param=param)
 
-    _ = Database.execute(operation=Database.WRITE,
-                         query=query,
-                         param=param)
+        EmailManager.send_email(email)
 
     response = Response(data=[],
                         message=Message.SUCCESS,

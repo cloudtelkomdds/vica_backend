@@ -11,6 +11,7 @@ from model.instance import Instance
 from calendar_manager import CalendarManager
 from model.email import Email
 from email_manager import EmailManager
+from message import Message
 
 class VmManager:
     DEFAULT_ADDRESS = "UNAVAILABLE"
@@ -133,10 +134,9 @@ class VmManager:
         _ = Database.execute(operation=Database.WRITE, query=query, param=param)
         print("Finish preparing instance " + name)
 
-        email_subject = "PBX Request Approval"
         date = CalendarManager.get_now_date()
-        email_body = "Congratulations. Your PBX Request {0} has been approved on {1}. Your PBX now is ready for use".format(origin_pbx, date)
-        an_email = Email(subject=email_subject,
+        email_body = Message.EMAIL_PBX_READY_BODY.format(date, origin_pbx, selected_instance.external_address)
+        an_email = Email(subject=Message.EMAIL_PBX_READY_SUBJECT,
                          body=email_body,
                          destination=origin_email)
         EmailManager.send_email(an_email)
